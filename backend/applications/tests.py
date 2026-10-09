@@ -1,12 +1,13 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from applications.models import Customer
+from applications.models import Customer, ExistingCard
 from cards.models import CreditCard
 from core.models import AuditLog
 
 APPLY_URL = "/api/applications/"
 PIN_URL = "/api/cards/change-pin/"
+TWO_CARDS = [{"issuer": "HDFC", "network": "VISA"}, {"issuer": "SBI", "network": "RUPAY"}]
 
 
 def payload(**overrides):
@@ -43,8 +44,19 @@ class ApplyFlowTests(TestCase):
         self.assertEqual((r.data["card"]["card_type"], r.data["credit_limit"]), ("PLATINUM", "40000.00"))
 
     def test_two_cards_gold(self):
-        r = self.apply(existing_credit_cards=2, annual_salary="30000", id_document_number="G7654321")
+        r = self.apply(existing_credit_cards=2, other_cards=TWO_CARDS, annual_salary="30000", id_document_number="G7654321")
         self.assertEqual((r.data["credit_score"], r.data["card"]["card_type"]), (300, "GOLD"))
+
+    def test_other_cards_are_saved_with_the_customer(self):
+        self.apply(existing_credit_cards=2, other_cards=TWO_CARDS, id_document_number="G7654321")
+        saved = ExistingCard.objects.filter(customer__id_document_number="G7654321")
+        self.assertEqual(sorted(saved.values_list("issuer", "network")), [("HDFC", "VISA"), ("SBI", "RUPAY")])
+
+    def test_number_of_cards_must_match_the_details(self):
+        r = self.apply(existing_credit_cards=2, other_cards=TWO_CARDS[:1])
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("other_cards", r.data["error"]["fields"])
+        self.assertEqual(ExistingCard.objects.count(), 0)
 
     def test_low_salary_requests_documents_and_issues_no_card(self):
         r = self.apply(annual_salary="30000", id_document_number="L7654321")

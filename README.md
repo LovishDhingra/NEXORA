@@ -27,7 +27,7 @@ Settings come from env vars: `POSTGRES_DB/USER/PASSWORD/HOST/PORT`, `DJANGO_SECR
 
 ### Tests
 ```bash
-cd backend && python manage.py test        # 31 tests; needs Postgres (or USE_SQLITE=1)
+cd backend && python manage.py test        # 33 tests; needs Postgres (or USE_SQLITE=1)
 ```
 
 ## Business rules implemented
@@ -49,6 +49,8 @@ cd backend && python manage.py test        # 31 tests; needs Postgres (or USE_SQ
 
 * An existing customer score is reused; otherwise it is calculated and saved on the customer.
 * "Cards held" = cards the applicant declares at other banks + cards issued by this system.
+* Every declared card needs its issuing bank and card type (`other_cards` in the request, saved as `ExistingCard`
+  rows). The list length must equal `existing_credit_cards`, otherwise the request is a 400.
 * Cards get a Luhn-valid 16-digit number; the first-time PIN is random, stored **hashed**, and returned once.
 * PIN change needs card number + first-time PIN + the ID document number used in the application.
   Weak PINs (1234, 0000…) are refused, the first-time PIN works only once, and 5 failed attempts lock the card.
@@ -72,7 +74,7 @@ Status codes: 400 validation, 409 conflict (duplicate application, identity mism
 ```
 backend/
   core/            audit log, event outbox, error envelope, pure validators
-  applications/    Customer + CreditApplication, Flow 1 orchestration
+  applications/    Customer + ExistingCard + CreditApplication, Flow 1 orchestration
   credit_rating/   Flow 2 – scoring service
   cards/           Flow 3 (decision, issuance) and Flow 4 (PIN change)
 frontend/          React (Vite): apply form, decision screen, PIN change

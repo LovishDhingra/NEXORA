@@ -5,7 +5,7 @@ from rest_framework import status
 from core import audit, events
 from core.exceptions import BusinessError
 
-from .models import ApplicationStatus, CreditApplication, Customer
+from .models import ApplicationStatus, CreditApplication, Customer, ExistingCard
 
 IDENTITY_FIELDS = ("first_name", "last_name", "date_of_birth")
 PROFILE_FIELDS = (
@@ -67,8 +67,13 @@ def submit_application(data: dict):
     from cards import services as card_services
     from credit_rating import services as rating_services
 
-    customer = _find_or_create_customer(dict(data))
+    data = dict(data)
+    other_cards = data.pop("other_cards", [])
+    customer = _find_or_create_customer(data)
     _ensure_can_apply(customer)
+
+    customer.other_cards.all().delete()  # keep only the list from the latest submission
+    ExistingCard.objects.bulk_create(ExistingCard(customer=customer, **c) for c in other_cards)
 
     application = CreditApplication.objects.create(customer=customer)
     audit.record("APPLICATION_SUBMITTED", "application", application.pk, customer_id=customer.pk)
