@@ -31,7 +31,7 @@ export default function App() {
         <aside className="visual">
           <CardVisual
             tier={card?.card_type}
-            name={card ? result.applicant_name : name}
+            name={card ? (result.applicant_name || name) : name}
             number={card?.card_number}
             expires={card?.expires_on}
             limit={card?.credit_limit}
@@ -51,7 +51,13 @@ export default function App() {
             <>
               <h1>Apply for a credit card</h1>
               <p className="lede">Five minutes, no paperwork. You'll get a decision as soon as you submit.</p>
-              <ApplyForm onChange={setDraft} onResult={(r) => setResult(r)} />
+              <ApplyForm
+                onChange={setDraft}
+                onResult={(r, submittedForm) => {
+                  setDraft(submittedForm);
+                  setResult(r);
+                }}
+              />
             </>
           )}
           {tab === "apply" && result && (
