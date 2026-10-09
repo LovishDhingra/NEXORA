@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ApiError, submitApplication } from "../api.js";
 import { normalizeDoc, validateApplication } from "../validation.js";
-import { SelectField, TextField } from "./Field.jsx";
+import { Field, SelectField, TextField } from "./Field.jsx";
 
 const EMPTY = {
   first_name: "", last_name: "", date_of_birth: "", email: "", phone: "",
@@ -11,6 +11,7 @@ const EMPTY = {
 
 export default function ApplyForm({ onChange, onResult }) {
   const [form, setForm] = useState(EMPTY);
+  const [countryCode, setCountryCode] = useState("+91");
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -25,7 +26,9 @@ export default function ApplyForm({ onChange, onResult }) {
   async function submit(ev) {
     ev.preventDefault();
     setFormError("");
-    const found = validateApplication(form);
+    const application = { ...form, phone: form.phone.trim() ? `${countryCode}${form.phone.replace(/[\s()-]/g, "")}` : "" };
+    const found = validateApplication(application);
+    if (!/^\+[1-9]\d{0,2}$/.test(countryCode)) found.phone = "Enter a country code such as +91 or +1.";
     setErrors(found);
     if (Object.keys(found).length) {
       document.querySelector('[aria-invalid="true"]')?.focus();
@@ -34,12 +37,12 @@ export default function ApplyForm({ onChange, onResult }) {
     setBusy(true);
     try {
       const result = await submitApplication({
-        ...form,
+        ...application,
         annual_salary: String(form.annual_salary),
         existing_credit_cards: Number(form.existing_credit_cards),
         id_document_number: normalizeDoc(form.id_document_number),
       });
-      onResult(result, form);
+      onResult(result, application);
     } catch (err) {
       if (err instanceof ApiError) {
         setErrors(err.fields || {});
@@ -63,7 +66,24 @@ export default function ApplyForm({ onChange, onResult }) {
           <TextField label="First name" autoComplete="given-name" {...p("first_name")} />
           <TextField label="Last name" autoComplete="family-name" {...p("last_name")} />
           <TextField label="Date of birth" type="date" autoComplete="bday" {...p("date_of_birth")} />
-          <TextField label="Phone" type="tel" autoComplete="tel" hint="Include your country code, e.g. +1 415 555 0123" {...p("phone")} />
+          <Field label="Phone" error={err("phone")} hint="Country code and phone number, e.g. +91 73559 04515">
+            {(aria) => (
+              <div className="phone-inputs">
+                <input
+                  aria-label="Country calling code" aria-describedby={aria["aria-describedby"]}
+                  type="tel" name="country_code" autoComplete="tel-country-code"
+                  value={countryCode} maxLength={4} placeholder="+91"
+                  onChange={(e) => {
+                    setCountryCode(e.target.value);
+                    setErrors((current) => ({ ...current, phone: undefined }));
+                  }}
+                />
+                <input {...aria} type="tel" name="phone" autoComplete="tel-national"
+                  value={form.phone} placeholder="73559 04515"
+                  onChange={(e) => set("phone", e.target.value)} />
+              </div>
+            )}
+          </Field>
         </div>
         <TextField label="Email" type="email" autoComplete="email" {...p("email")} />
       </fieldset>

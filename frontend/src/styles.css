@@ -65,6 +65,7 @@ legend {
 }
 .grid.two { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .field { display: grid; gap: .3rem; align-content: start; }
+.phone-inputs { display: grid; grid-template-columns: 5rem minmax(0, 1fr); gap: .5rem; }
 label { font-weight: 500; font-size: .92rem; color: var(--navy); }
 input, select {
   font: inherit; color: var(--ink); background: var(--field); width: 100%;
