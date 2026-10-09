@@ -6,7 +6,18 @@ import { SelectField, TextField } from "./Field.jsx";
 const EMPTY = {
   first_name: "", last_name: "", date_of_birth: "", email: "", phone: "",
   employment_type: "SALARIED", employer_name: "", job_title: "", annual_salary: "", existing_credit_cards: "0",
+  other_cards: [],
   id_document_type: "PASSPORT", id_document_number: "",
+};
+
+const NETWORKS = [
+  ["VISA", "Visa"], ["MASTERCARD", "Mastercard"], ["AMEX", "American Express"], ["RUPAY", "RuPay"], ["OTHER", "Other"],
+];
+
+// One blank row per card the applicant says they hold; rows already filled in are kept.
+const resizeCards = (cards, count) => {
+  const n = Math.min(Math.max(parseInt(count, 10) || 0, 0), 50);
+  return Array.from({ length: n }, (_, i) => cards[i] || { issuer: "", network: "VISA" });
 };
 
 export default function ApplyForm({ onChange, onResult }) {
@@ -17,10 +28,14 @@ export default function ApplyForm({ onChange, onResult }) {
 
   const set = (name, value) => {
     const next = { ...form, [name]: value };
+    if (name === "existing_credit_cards") next.other_cards = resizeCards(form.other_cards, value);
     setForm(next);
     if (errors[name]) setErrors((e) => ({ ...e, [name]: undefined }));
     onChange?.(next);
   };
+
+  const setCard = (i, key, value) =>
+    set("other_cards", form.other_cards.map((c, n) => (n === i ? { ...c, [key]: value } : c)));
 
   async function submit(ev) {
     ev.preventDefault();
@@ -86,6 +101,19 @@ export default function ApplyForm({ onChange, onResult }) {
           hint="Cards from any bank. Enter 0 if this is your first."
           {...p("existing_credit_cards")}
         />
+        {form.other_cards.map((card, i) => (
+          <div className="grid two" key={i}>
+            <TextField
+              label={`Card ${i + 1}: issuing bank`} name={`issuer_${i}`} maxLength={60}
+              value={card.issuer} onChange={(_, v) => setCard(i, "issuer", v)}
+            />
+            <SelectField
+              label={`Card ${i + 1}: type`} name={`network_${i}`} options={NETWORKS}
+              value={card.network} onChange={(_, v) => setCard(i, "network", v)}
+            />
+          </div>
+        ))}
+        {typeof err("other_cards") === "string" ? <p className="msg error" role="alert">{err("other_cards")}</p> : null}
       </fieldset>
 
       <fieldset>

@@ -38,6 +38,7 @@ export function validateApplication(f) {
   if (!e.annual_salary && !(Number(f.annual_salary) > 0)) e.annual_salary = "Annual salary must be greater than zero.";
   if (f.existing_credit_cards === "" || Number(f.existing_credit_cards) < 0 || !Number.isInteger(Number(f.existing_credit_cards)))
     e.existing_credit_cards = "Enter 0 or a whole number.";
+  if (f.other_cards.some((c) => !c.issuer.trim())) e.other_cards = "Enter the issuing bank for each card.";
   if (!e.id_document_number) {
     const rule = DOC_RULES[f.id_document_type];
     if (rule && !rule.re.test(normalizeDoc(f.id_document_number))) e.id_document_number = rule.msg;

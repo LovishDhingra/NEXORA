@@ -42,6 +42,24 @@ class Customer(models.Model):
         return f"{self.first_name} {self.last_name}"
 
 
+class CardNetwork(models.TextChoices):
+    VISA = "VISA", "Visa"
+    MASTERCARD = "MASTERCARD", "Mastercard"
+    AMEX = "AMEX", "American Express"
+    RUPAY = "RUPAY", "RuPay"
+    OTHER = "OTHER", "Other"
+
+
+class ExistingCard(models.Model):
+    """A card the applicant says they hold at another bank."""
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="other_cards")
+    issuer = models.CharField(max_length=60)
+    network = models.CharField(max_length=12, choices=CardNetwork.choices)
+
+    def __str__(self):
+        return f"{self.issuer} {self.get_network_display()}"
+
+
 class ApplicationStatus(models.TextChoices):
     SUBMITTED = "SUBMITTED", "Submitted"
     APPROVED = "APPROVED", "Approved"

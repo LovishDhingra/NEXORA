@@ -4,7 +4,12 @@ from rest_framework import serializers
 
 from core import validators
 
-from .models import CreditApplication, EmploymentType, IdDocumentType
+from .models import CardNetwork, CreditApplication, EmploymentType, IdDocumentType
+
+
+class ExistingCardSerializer(serializers.Serializer):
+    issuer = serializers.CharField(max_length=60)
+    network = serializers.ChoiceField(choices=CardNetwork.choices)
 
 
 class ApplicationInputSerializer(serializers.Serializer):
@@ -19,6 +24,7 @@ class ApplicationInputSerializer(serializers.Serializer):
     job_title = serializers.CharField(max_length=120)
     annual_salary = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0)
     existing_credit_cards = serializers.IntegerField(min_value=0, max_value=50, default=0)
+    other_cards = ExistingCardSerializer(many=True, required=False, default=list)
 
     id_document_type = serializers.ChoiceField(choices=IdDocumentType.choices)
     id_document_number = serializers.CharField(max_length=24)
@@ -55,6 +61,10 @@ class ApplicationInputSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
+        if len(attrs["other_cards"]) != attrs["existing_credit_cards"]:
+            raise serializers.ValidationError(
+                {"other_cards": f"Add the bank and card type for each of your {attrs['existing_credit_cards']} cards."}
+            )
         error = validators.check_document_number(attrs["id_document_type"], attrs["id_document_number"])
         if error:
             raise serializers.ValidationError({"id_document_number": error})
