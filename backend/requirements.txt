@@ -1,0 +1,7 @@
+Django>=5.0,<5.3
+djangorestframework>=3.15
+psycopg2-binary>=2.9
+gunicorn>=22.0
+# Optional: publish domain events to Kafka (set KAFKA_BOOTSTRAP_SERVERS to enable)
+# kafka-python>=2.0
+whitenoise>=6.6
